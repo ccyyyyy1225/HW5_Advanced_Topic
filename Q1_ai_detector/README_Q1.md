@@ -36,7 +36,7 @@ AI / Human Probability Output
 
 ## Demo
 - **Streamlit Demo：**  
-  🔗【貼你的 Q1 Streamlit 連結】
+  🔗https://hw5advancedtopicq1.streamlit.app/
 
 ---
 
