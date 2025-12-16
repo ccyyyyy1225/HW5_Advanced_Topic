@@ -15,3 +15,39 @@
 ---
 
 ## 系統流程
+```
+
+User Input Text
+↓
+Feature / Rule-based Analysis
+↓
+AI / Human Probability Output
+
+```
+
+---
+
+## 使用技術
+- Python
+- Streamlit
+- scikit-learn（或自訂特徵法）
+
+---
+
+## Demo
+- **Streamlit Demo：**  
+  🔗【貼你的 Q1 Streamlit 連結】
+
+---
+
+## 檔案說明
+- `streamlit_app.py`：Streamlit 前端主程式
+- `model.py`：文章判斷邏輯
+- `requirements.txt`：套件需求
+
+---
+
+## 備註
+本系統為簡化版 AI Detector，主要展示 AI / Human 文章判斷流程與介面設計，
+不追求商業級準確度。
+```
