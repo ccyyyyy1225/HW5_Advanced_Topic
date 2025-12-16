@@ -7,7 +7,7 @@
 ## Q1 — AI / Human 文章偵測器（AI Detector）
 - 功能：輸入一段文字，即時顯示 AI / Human 機率
 - 技術：scikit-learn + Streamlit
-- Demo：🔗（貼你的 Streamlit Q1 連結）
+- Demo：🔗[(https://hw5advancedtopicq1.streamlit.app/)]
 - 原始碼：`/Q1_AI_Detector`
 
 ---
@@ -16,7 +16,7 @@
 - 功能：Streamlit 透過 Webhook 呼叫 n8n workflow
 - 支援功能：summary / reply / notes / translate
 - 特點：**完全不使用 OpenAI，僅使用免費邏輯與 API**
-- Demo：🔗（貼你的 Streamlit Q2 連結）
+- Demo：🔗[(https://hw5advancedtopicq2.streamlit.app/)]
 - Workflow：`/Q2_n8n_Workflow/workflow_free.json`
 
 ---
@@ -27,6 +27,6 @@
 - 風格：
   - Style A：Dark / Neon
   - Style B：Clean / Minimal
-- Demo：🔗（貼你的 Streamlit Q3 連結）
+- Demo：🔗[(https://hw5advancedtopicq3.streamlit.app/)]
 - 原始碼：`/Q3_PPT_Redesign`
 
