@@ -1,0 +1,296 @@
+{
+  "name": "HW5-Q2 Free AI Webhook (No OpenAI)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "hw5-ai",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "WebhookNode",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "amount": 2,
+        "unit": "seconds"
+      },
+      "id": "WaitNode",
+      "name": "Wait",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [420, 300]
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "action",
+              "value": "={{$json.body?.action || $json.query?.action || 'summary'}}"
+            },
+            {
+              "name": "text",
+              "value": "={{$json.body?.text || $json.query?.text || ''}}"
+            },
+            {
+              "name": "target_lang",
+              "value": "={{$json.body?.target_lang || $json.body?.target_language || $json.query?.target_lang || 'zh-TW'}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "SetInputNode",
+      "name": "Set Input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [640, 300]
+    },
+    {
+      "parameters": {
+        "value1": "={{$json.action}}",
+        "rules": [
+          {
+            "operation": "equal",
+            "value2": "summary"
+          },
+          {
+            "operation": "equal",
+            "value2": "translate"
+          },
+          {
+            "operation": "equal",
+            "value2": "reply"
+          },
+          {
+            "operation": "equal",
+            "value2": "notes"
+          }
+        ]
+      },
+      "id": "SwitchNode",
+      "name": "Switch Action",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 2,
+      "position": [860, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = ($json.text || \"\").toString().trim();\nif (!text) return [{ json: { ok: false, action: \"summary\", result: \"No input text.\" } }];\n\nconst sentences = text\n  .split(/(?<=[。！？.!?])\\s*/g)\n  .map(s => s.trim())\n  .filter(Boolean);\n\nif (sentences.length <= 5) {\n  return [{ json: { ok: true, action: \"summary\", result: sentences.join(\"\\n\") } }];\n}\n\nconst keywords = [\"目標\",\"流程\",\"方法\",\"結果\",\"因此\",\"此外\",\"總結\",\"重要\",\"原因\",\"步驟\",\"系統\",\"架構\",\"自動化\",\"Webhook\",\"回傳\",\"JSON\"];\nfunction score(s) {\n  let sc = Math.min(20, s.length / 6);\n  for (const k of keywords) if (s.includes(k)) sc += 5;\n  return sc;\n}\n\nconst ranked = sentences\n  .map((s, i) => ({ s, i, sc: score(s) }))\n  .sort((a, b) => b.sc - a.sc)\n  .slice(0, 5)\n  .sort((a, b) => a.i - b.i)\n  .map((x, idx) => `${idx + 1}. ${x.s}`);\n\nreturn [{ json: { ok: true, action: \"summary\", result: ranked.join(\"\\n\") } }];"
+      },
+      "id": "FreeSummaryNode",
+      "name": "Free — Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 120]
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = ($json.text || \"\").toString().trim();\nif (!text) return [{ json: { ok: false, action: \"reply\", result: \"No input text.\" } }];\n\nconst isQuestion = /(\\?|？|怎麼|為什麼|可以嗎|如何|要不要|能不能)/.test(text);\nconst isComplaint = /(錯誤|失敗|不能|卡住|崩潰|很煩|不行)/.test(text);\n\nlet reply = \"收到，我已記錄你的需求。\";\nif (isComplaint) {\n  reply = \"我了解你遇到的困難。建議先確認輸入是否正確，並提供錯誤訊息或截圖以便排查。\";\n} else if (isQuestion) {\n  reply = \"我看到你的問題了。建議你先列出你的環境、操作步驟與期望結果，我可以依此提供更精準的建議。\";\n} else {\n  reply = \"收到。若你希望我進一步協助，請補充你想達成的目標與限制條件。\";\n}\n\nconst bullets = [\n  \"我已收到訊息\",\n  isQuestion ? \"判定：偏問題型\" : \"判定：偏敘述型\",\n  isComplaint ? \"情緒：可能有挫折\" : \"情緒：中性\",\n].map((x,i)=>`${i+1}. ${x}`).join(\"\\n\");\n\nreturn [{ json: { ok: true, action: \"reply\", result: `${reply}\\n\\n【自動分析】\\n${bullets}` } }];"
+      },
+      "id": "FreeReplyNode",
+      "name": "Free — Reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 260]
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = ($json.text || \"\").toString().trim();\nif (!text) return [{ json: { ok: false, action: \"notes\", result: \"No input text.\" } }];\n\nconst lines = text.split(/\\n+/).map(s => s.trim()).filter(Boolean);\nconst key = lines.filter(l =>\n  /(目標|步驟|流程|網址|http|github|streamlit|error|錯誤|json|webhook|demo)/i.test(l)\n);\n\nconst note = [\n  \"【重點整理】\",\n  ...(key.length ? key.map(x => `- ${x}`) : [\"-（未偵測到明顯關鍵句，以下提供全文要點）\"]),\n  \"\",\n  \"【待辦 TODO】\",\n  \"- 確認輸入格式與 action 是否正確\",\n  \"- 截圖：n8n workflow、execution、Streamlit 結果\",\n  \"- workflow.json 放 GitHub（勿包含金鑰）\"\n].join(\"\\n\");\n\nreturn [{ json: { ok: true, action: \"notes\", result: note } }];"
+      },
+      "id": "FreeNotesNode",
+      "name": "Free — Notes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 400]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.mymemory.translated.net/get?q={{$json.text}}&langpair=auto|{{$json.target_lang || \"zh-TW\"}}",
+        "method": "GET",
+        "responseFormat": "json",
+        "options": {}
+      },
+      "id": "FreeTranslateHttpNode",
+      "name": "Free — Translate (MyMemory)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [1100, 540]
+    },
+    {
+      "parameters": {
+        "jsCode": "const translated = $json?.responseData?.translatedText;\nconst fallback = $node[\"Set Input\"].json.text || \"\";\n\nif (!translated) {\n  return [{ json: { ok: false, action: \"translate\", result: \"Translate failed. Returning original:\\n\" + fallback } }];\n}\n\nreturn [{ json: { ok: true, action: \"translate\", result: translated } }];"
+      },
+      "id": "NormalizeTranslateNode",
+      "name": "Normalize — Translate Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1320, 540]
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => ({ json: {\n  ok: item.json.ok ?? true,\n  action: item.json.action ?? ($json.action || \"unknown\"),\n  result: item.json.result ?? JSON.stringify(item.json)\n}}));"
+      },
+      "id": "NormalizeOutputNode",
+      "name": "Normalize Output",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1540, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {\n  ok: $json.ok,\n  action: $json.action,\n  result: $json.result\n} }}"
+      },
+      "id": "RespondNode",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1760, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Set Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Input": {
+      "main": [
+        [
+          {
+            "node": "Switch Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch Action": {
+      "main": [
+        [
+          {
+            "node": "Free — Summary",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Free — Translate (MyMemory)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Free — Reply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Free — Notes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Free — Summary": {
+      "main": [
+        [
+          {
+            "node": "Normalize Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Free — Reply": {
+      "main": [
+        [
+          {
+            "node": "Normalize Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Free — Notes": {
+      "main": [
+        [
+          {
+            "node": "Normalize Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Free — Translate (MyMemory)": {
+      "main": [
+        [
+          {
+            "node": "Normalize — Translate Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize — Translate Output": {
+      "main": [
+        [
+          {
+            "node": "Normalize Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Output": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "versionId": "1",
+  "settings": {},
+  "pinData": {},
+  "staticData": {}
+}
